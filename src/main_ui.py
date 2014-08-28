@@ -133,8 +133,7 @@ class MainUI(Frame):
         self.parent.after(1000 / 15 , self._show_image)
 
     def process(self):
-        api = PhotoPointApi()
-        api.set_options(
+        self.api.process(
             self.folder_name.get(), 
             self.output_file.get(), 
             self.rgb_threshold,
@@ -143,7 +142,6 @@ class MainUI(Frame):
             self.simplifcation.get(),
             self.call_back 
             )
-        api.start()
 
 class PhotoPoint(Tk):
     def __init__(self,parent, path):

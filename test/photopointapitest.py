@@ -1,5 +1,6 @@
 import unittest
 import os
+from os import listdir
 import sys
 from PIL import Image, ImageTk
 import shutil
@@ -7,20 +8,12 @@ import shutil
 
 sys.path.insert(0,os.path.join(os.path.dirname(__file__), '..','src'))
 
-from photopointapi import PhotoPointApi
+from photopointapi import PhotoPointApi, Photos2Points
 
 class PhotoPointApiTests(unittest.TestCase):
     def setUp(self):
         self.test_folder = os.path.join(os.path.dirname(__file__), 'test_data')
         self.simple_test_folder = os.path.join(os.path.dirname(__file__), 'test_data_simple')
-        self.output_folder = os.path.join(os.path.dirname(__file__), 'test_output')
-        try:
-            os.stat(self.output_folder)
-            shutil.rmtree(self.output_folder)
-        except:
-            pass
-        os.mkdir(self.output_folder)
-        self.output_file = os.path.join(self.output_folder, 'output.ply')
         
     
     def test_count_images_in_folder_returns_correct_jpg_count(self):
@@ -78,20 +71,26 @@ class PhotoPointApiTests(unittest.TestCase):
         (actual, filename) = ppa.test_image(self.test_folder,expected_size, None, 4)
         self.assertEquals(expected , filename)
 
-    def test_process_should_fail_if_folder_empty(self):
-        test_source = os.path.dirname(__file__)
-        test_threshold = (255,255,255)
-        test_z_pixels = 1
-        ppa = PhotoPointApi()
-        with self.assertRaises(Exception):
-            ppa.process(test_source,self.output_file,test_threshold, test_z_pixels, 1, 1, None)
-        
+class Photos2PointsTests(unittest.TestCase):
+
+    def setUp(self):
+        self.test_folder = os.path.join(os.path.dirname(__file__), 'test_data')
+        self.simple_test_folder = os.path.join(os.path.dirname(__file__), 'test_data_simple')
+        self.simple_test_files = sorted([ os.path.join(self.simple_test_folder,f) for f in listdir(self.simple_test_folder)])
+        self.output_folder = os.path.join(os.path.dirname(__file__), 'test_output')
+        try:
+            os.stat(self.output_folder)
+            shutil.rmtree(self.output_folder)
+        except:
+            pass
+        os.mkdir(self.output_folder)
+        self.output_file = os.path.join(self.output_folder, 'output.ply')
+
     def test_process_should_create_specified_ply_file(self):
         test_threshold = (255,255,255)
         test_z_pixels = 1
-        ppa = PhotoPointApi()
         self.assertFalse(os.path.isfile(self.output_file))
-        ppa.set_options(self.simple_test_folder,self.output_file,test_threshold, test_z_pixels, 1, 1, None)
+        ppa = Photos2Points(self.simple_test_files,self.output_file,test_threshold, test_z_pixels, 1, 1, None)
         ppa.start()
         ppa.join()
         self.assertTrue(os.path.isfile(self.output_file))
@@ -99,8 +98,7 @@ class PhotoPointApiTests(unittest.TestCase):
     def test_process_should_create_specified_ply_file_and_add_headers(self):
         test_threshold = (255,255,255)
         test_z_pixels = 1
-        ppa = PhotoPointApi()
-        ppa.set_options(self.simple_test_folder,self.output_file,test_threshold, test_z_pixels, 1, 1, None)
+        ppa = Photos2Points(self.simple_test_files,self.output_file,test_threshold, test_z_pixels, 1, 1, None)
         ppa.start()
         ppa.join()
         expected_headers ='''ply
@@ -122,8 +120,7 @@ end_header
     def test_process_should_add_points_above_threshold(self):
         test_threshold = (255,255,255)
         test_z_pixels = 1
-        ppa = PhotoPointApi()
-        ppa.set_options(self.simple_test_folder,self.output_file,test_threshold, test_z_pixels, 1, 1, None)
+        ppa = Photos2Points(self.simple_test_files,self.output_file,test_threshold, test_z_pixels, 1, 1, None)
         ppa.start()
         ppa.join()
         expected_points ='''46 52 0 255 0 0\n46 52 1 255 0 0\n46 52 2 255 0 0\n'''
@@ -134,8 +131,7 @@ end_header
     def test_process_should_add_points_above_threshold_with_correct_z(self):
         test_threshold = (255,255,255)
         test_z_pixels = 2
-        ppa = PhotoPointApi()
-        ppa.set_options(self.simple_test_folder,self.output_file,test_threshold, test_z_pixels, 1, 1, None)
+        ppa = Photos2Points(self.simple_test_files,self.output_file,test_threshold, test_z_pixels, 1, 1, None)
         ppa.start()
         ppa.join()
         expected_points ='''46 52 0 255 0 0\n46 52 2 255 0 0\n46 52 4 255 0 0\n'''
@@ -147,8 +143,7 @@ end_header
         test_threshold = (255,255,255)
         test_z_pixels = 1
         scale = 10
-        ppa = PhotoPointApi()
-        ppa.set_options(self.simple_test_folder,self.output_file,test_threshold, test_z_pixels, scale, 1, None)
+        ppa = Photos2Points(self.simple_test_files,self.output_file,test_threshold, test_z_pixels, scale, 1, None)
         ppa.start()
         ppa.join()
         expected_points ='''460 520 0 255 0 0\n460 520 10 255 0 0\n460 520 20 255 0 0\n'''
@@ -159,8 +154,7 @@ end_header
     def test_process_should_simplify_points(self):
         test_threshold = (255,255,255)
         test_z_pixels = 1
-        ppa = PhotoPointApi()
-        ppa.set_options(self.simple_test_folder,self.output_file,test_threshold, test_z_pixels, 1, 2, None)
+        ppa = Photos2Points(self.simple_test_files,self.output_file,test_threshold, test_z_pixels, 1, 2, None)
         ppa.start()
         ppa.join()
         expected_points ='''46 52 0 255 0 0\n46 52 2 255 0 0\n'''
