@@ -56,6 +56,14 @@ class PhotoPointApiTests(unittest.TestCase):
         for pixel in actual.getdata():
             self.assertEquals((217,217,217), pixel)
 
+    def test_test_image_should_return_a_altered_image_with_specified_background(self):
+        expected_size = 128,72
+        ppa = PhotoPointApi()
+        threshold = 255,255,255
+        (actual, filename) = ppa.test_image(self.test_folder,expected_size, threshold, None, 0)
+        for pixel in actual.getdata():
+            self.assertEquals((0,0,0), pixel)
+
     def test_test_image_should_use_middle_image(self):
         expected = os.path.join(self.test_folder, 'DSC_6751.JPG')
         expected_size = 128,72

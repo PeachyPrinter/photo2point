@@ -84,7 +84,11 @@ class MainUI(Frame):
     
         Button(text = "Giver...", command= self.process).grid(column = 2, row = 60)
         Label(textvariable = self.call_back_message).grid(column = 3, row = 60)
-        # self.image_label = Label(image = None, height = 800, width= 1600).grid(column=0, columnspan = 5, row = 80,sticky=N+E+S+W)
+
+        self.image_slider = Scale(to =  1, from_ = 1, command= self.update_required, length=500,  variable = self.selected_image )
+        self.image_slider.grid(column=4, row = 80, sticky=N+S+E)
+        self.image_slider.grid_remove()
+
         self.parent.after(1000 / 15 , self._show_image)
         self.update = True
 
@@ -105,7 +109,8 @@ class MainUI(Frame):
         images = self.api.count_images_in_folder(foldername)
         self.image_count.set(images)
         self.selected_image.set(images / 2)
-        self.image_slider = Scale(to =  images, from_ = 1, command= self.update_required, length=500,  variable = self.selected_image ).grid(column=4, row = 80, sticky=N+S+E)
+        self.image_slider.config(to = images)
+        self.image_slider.grid()
         if images > 0:
             self.image_available = True
             self.update_required()

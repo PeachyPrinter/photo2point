@@ -29,6 +29,7 @@ end_header
 
     def _files(self,folder):
         if self.folder_cache != folder:
+            print("Cache Miss")
             self.folder_cache = folder
             self.files_cache = sorted([ f for f in listdir(folder) if isfile(join(folder,f)) and self._isimage(f)])
         return self.files_cache
@@ -39,24 +40,16 @@ end_header
     def _isimage(self,afile):
         return afile.lower().split('.')[-1] in self.image_types
 
-    def _get_threshold(self,pixel):
-        rgb_threshold = self.rgb_threshold
-        print("*" * 88)
-        print pixel
-        return pixel
-        if (pixel[0] >= rgb_threshold[0] and pixel[1] >= rgb_threshold[1] and pixel[2] >= rgb_threshold[2]):
-            return pixel
-        elif(pixel[0] >= rgb_threshold[0] - 10 and pixel[1] >= rgb_threshold[1] - 10and pixel[2] >= rgb_threshold[2]- 10):
-            return (255,0,0)
-        else:
-            return (217,217,217)
-
     def _in_threshold(self,pixel, rgb_threshold):
         return (pixel[0] >= rgb_threshold[0] and pixel[1] >= rgb_threshold[1] and pixel[2] >= rgb_threshold[2])
 
-    def test_image(self, folder, size, rgb_threshold, image_no = None):
-        self.rgb_threshold = rgb_threshold
-        start = time.time()
+    def _threshold_test(self, band, threshold, background):
+            if (band >= threshold):
+                return band
+            else:
+                return background
+
+    def test_image(self, folder, size, rgb_threshold, image_no = None, background = 217):
         images = self._files(folder)
         if image_no == None:
             image_to_use = len(images) / 2
@@ -67,14 +60,11 @@ end_header
         image.thumbnail(size)
         if rgb_threshold:
             R,G,B = image.split()
-            image = Image.merge(image.mode,(R,G,B) )
-            mask1 = R.point(lambda i: i < rgb_threshold[0] and 38)
-            mask2 = G.point(lambda i: i < rgb_threshold[1] and 38)
-            mask3 = B.point(lambda i: i < rgb_threshold[2] and 38)
-            image = Image.merge(image.mode,(mask1,mask2,mask3) )
-            image = ImageOps.invert(image)
+            mask1 = R.point(lambda i: self._threshold_test(i, rgb_threshold[0], background))
+            mask2 = G.point(lambda i: self._threshold_test(i, rgb_threshold[1], background))
+            mask3 = B.point(lambda i: self._threshold_test(i, rgb_threshold[2], background))
 
-            # Image.eval(image, self._get_threshold)
+            image = Image.merge(image.mode,(mask1,mask2,mask3) )
         return (image, test_image_file)
 
 
