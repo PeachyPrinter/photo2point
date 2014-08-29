@@ -2,7 +2,7 @@ import os
 from os import listdir
 from os.path import isfile, join
 import PIL
-from PIL import Image, ImageTk,ImageOps
+from PIL import Image, ImageTk,ImageOps, ImageChops
 import threading
 import math
 import time
@@ -107,7 +107,7 @@ class PhotoPointApi(object):
             else:
                 return background
 
-    def test_image(self, folder, size, rgb_threshold, image_no = None, background = 217):
+    def test_image(self, folder, size, rgb_threshold, image_no = None, background = 0, crop = 0,offset = (0,0)):
         images = self._files(folder)
         if image_no == None:
             image_to_use = len(images) / 2
@@ -115,6 +115,20 @@ class PhotoPointApi(object):
             image_to_use = image_no - 1
         test_image_file = images[image_to_use]
         image = Image.open(test_image_file)
+
+        x,y = image.size
+        ydiff = int(float(y) * float(crop) / 100.0 / 2.0)
+        xdiff = int(float(x) * float(crop) / 100.0 / 2.0)
+        off_x = int(float(offset[0]) / 100.0 * float(x))
+        off_y = int(float(offset[1]) / 100.0 * float(y))
+        if abs(off_x) > xdiff:
+            off_x = xdiff * (abs(off_x) / off_x)
+        if abs(off_y) > ydiff:
+            off_y = ydiff * (abs(off_y) / off_y)
+        image = ImageChops.offset(image, off_x,off_y)
+        image = image.crop((xdiff,ydiff,x - xdiff, y - ydiff))
+
+
         image.thumbnail(size)
         if rgb_threshold:
             R,G,B = image.split()

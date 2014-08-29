@@ -45,7 +45,7 @@ class PhotoPointApiTests(unittest.TestCase):
         expected_size = 128,72
         ppa = PhotoPointApi()
         threshold = 255,255,255
-        (actual, filename) = ppa.test_image(self.test_folder,expected_size, threshold)
+        (actual, filename) = ppa.test_image(self.test_folder,expected_size, threshold, background = 217)
         for pixel in actual.getdata():
             self.assertEquals((217,217,217), pixel)
 
@@ -70,6 +70,20 @@ class PhotoPointApiTests(unittest.TestCase):
         ppa = PhotoPointApi()
         (actual, filename) = ppa.test_image(self.test_folder,expected_size, None, 4)
         self.assertEquals(expected , filename)
+
+    def test_test_image_should_crop_specifed_image(self):
+        expected = os.path.join(self.test_folder, 'DSC_6752.JPG')
+        expected_size = 64,36
+        ppa = PhotoPointApi()
+        (actual, filename) = ppa.test_image(self.test_folder,expected_size, None, 4, crop = 50)
+        self.assertEquals(expected_size,actual.size)
+
+    def test_test_image_should_offset_when_croped_specifed_image(self):
+        expected = os.path.join(self.test_folder, 'DSC_6752.JPG')
+        expected_size = 64,36
+        ppa = PhotoPointApi()
+        (actual, filename) = ppa.test_image(self.test_folder,expected_size, None, 4, crop = 50, offset = (10,10))
+        self.assertEquals(expected_size,actual.size)
 
 class Photos2PointsTests(unittest.TestCase):
 
