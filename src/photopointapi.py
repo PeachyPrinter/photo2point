@@ -7,6 +7,7 @@ import threading
 import math
 import time
 import numpy as np
+import cv2
 
 class Photos2Points(threading.Thread):
     def __init__(self, source_files, output_file, rgb_threshold, z_pixels, scale, simplification, call_back):
@@ -117,8 +118,10 @@ class PhotoPointApi(object):
         image = Image.open(test_image_file)
 
         x,y = image.size
+
         ydiff = int(float(y) * float(crop) / 100.0 / 2.0)
         xdiff = int(float(x) * float(crop) / 100.0 / 2.0)
+
         off_x = int(float(offset[0]) / 100.0 * float(x))
         off_y = int(float(offset[1]) / 100.0 * float(y))
         if abs(off_x) > xdiff:
@@ -139,11 +142,23 @@ class PhotoPointApi(object):
             image = Image.merge(image.mode,(mask1,mask2,mask3) )
         return (image, test_image_file)
 
+
     def process(self, source_folder, output_file, rgb_threshold, z_pixels, scale, simplification, call_back):
         files = self._files(source_folder)
         converter = Photos2Points(files, output_file, rgb_threshold, z_pixels, scale, simplification, call_back)
         converter.start()
-        
+
+    def process_video(self, source_folder, output_file, rgb_threshold, crop = 0, offset = (0,0), callback = None):
+        video_size = (1920,1080)
+        fourcc = cv2.cv.FOURCC(*'MJPG')
+        out = cv2.VideoWriter(output_file,fourcc, 24.0, video_size)
+        images = self.count_images_in_folder(source_folder)
+        for i in range(0, self.count_images_in_folder(source_folder)):
+            print('Processing image: %s of %s' %(i+1,images))
+            image,filename = self.test_image(source_folder, video_size, rgb_threshold, i, 0, crop , offset)
+            open_cv_image = np.array(image)[:, :, ::-1].copy() 
+            out.write(open_cv_image)
+        out.release()
 
 
 

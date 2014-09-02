@@ -6,12 +6,11 @@ import tkFileDialog
 from PIL import Image, ImageTk
 from photopointapi import PhotoPointApi
 
-# class MainUI(Tk):
 class PhotoPoint(Tk):
     def __init__(self, *args, **kwargs):
         Tk.__init__(self, *args, **kwargs)
         self.path = path 
-        self.geometry("1200x950")
+        self.geometry("1200x975")
         self.title('Photo Point')
         self.columnconfigure(1, weight=1)
         self.columnconfigure(2, weight=1)
@@ -19,19 +18,26 @@ class PhotoPoint(Tk):
         self.rowconfigure(80, weight=1)
           
         self.protocol("WM_DELETE_WINDOW", self.close)
-        # self.configure(background = 'black',)
         self.folder_opt = {}
         self.folder_opt['initialdir'] = '~/Desktop'
         self.folder_opt['parent'] = self
         self.folder_opt['title'] = 'Select folder containing images'
 
-        self.file_opt = {}
-        self.file_opt['initialdir'] = '~/Desktop'
-        self.file_opt['parent'] = self
-        self.file_opt['title'] = 'Select output file'
-        self.file_opt['filetypes'] = [('all files', '.*'), ('ply files', '.ply')]
-        self.file_opt['initialfile'] = ['output.ply']
-        self.file_opt['defaultextension'] = '.ply'
+        self.point_cloud_file_opt = {}
+        self.point_cloud_file_opt['initialdir'] = '~/Desktop'
+        self.point_cloud_file_opt['parent'] = self
+        self.point_cloud_file_opt['title'] = 'Select output file'
+        self.point_cloud_file_opt['filetypes'] = [('all files', '.*'), ('ply files', '.ply')]
+        self.point_cloud_file_opt['initialfile'] = ['output.ply']
+        self.point_cloud_file_opt['defaultextension'] = '.ply'
+
+        self.video_file_opt = {}
+        self.video_file_opt['initialdir'] = '~/Desktop'
+        self.video_file_opt['parent'] = self
+        self.video_file_opt['title'] = 'Select output file'
+        self.video_file_opt['filetypes'] = [('all files', '.*'), ('movie files', '.avi')]
+        self.video_file_opt['initialfile'] = ['output.avi']
+        self.video_file_opt['defaultextension'] = '.avi'
 
 
         self.folder_name = StringVar()
@@ -82,19 +88,23 @@ class PhotoPoint(Tk):
         Label( text = "Number of images process:").grid(padx=2,column=4, row=10)
         Label( textvariable = self.image_count).grid(padx=2,column=5, row=10, sticky=W)
 
-        Label( text = "Output file").grid(padx=2,column=0, row=17, sticky = E)
+        Label( text = "Point file").grid(padx=2,column=0, row=17, sticky = E)
         Entry( textvariable = self.point_could_output_file).grid(padx=2,column=1, row=17, columnspan=2,sticky=E+W)
-        Button(text = "Save as...", command= self._save_as).grid(padx=2,column=3, row=17,sticky=W)
+        Button(text = "Save as...", command= self._points_save_as).grid(padx=2,column=3, row=17,sticky=W)
+
+        Label( text = "Video file").grid(padx=2,column=0, row=18, sticky = E)
+        Entry( textvariable = self.video_output_file).grid(padx=2,column=1, row=18, columnspan=2,sticky=E+W)
+        Button(text = "Save as...", command= self._video_save_as).grid(padx=2,column=3, row=18,sticky=W)
 
         Button(text = "Genetate Points", command= self.process_points).grid(padx=2,column=4, columnspan=2, row=17, sticky=E)
         Button(text = "Generate Video", command= self.process_video).grid(padx=2,column=4, columnspan=2, row=18, sticky=E)
 
-        Label( text = "Z spacing (pixels)").grid(padx=2,column=0, row=18, sticky = E)
-        Entry( textvariable = self.z_space,width = 10).grid(padx=2,column=1, row=18,sticky=W)
-        Label( text = "Scale [0.001]").grid(padx=2,column=0, row=19, sticky = E)
-        Entry( textvariable = self.scale,width = 10).grid(padx=2,column=1, row=19,sticky=W)
-        Label( text = "Simplifcation [1]").grid(padx=2,column=0, row=20, sticky = E)
-        Entry( textvariable = self.simplifcation,width = 10).grid(padx=2,column=1, row=20,sticky=W)
+        Label( text = "Z spacing (pixels)").grid(padx=2,column=0, row=20, sticky = E)
+        Entry( textvariable = self.z_space,width = 10).grid(padx=2,column=1, row=20,sticky=W)
+        Label( text = "Scale [0.001]").grid(padx=2,column=0, row=22, sticky = E)
+        Entry( textvariable = self.scale,width = 10).grid(padx=2,column=1, row=22,sticky=W)
+        Label( text = "Simplifcation [1]").grid(padx=2,column=0, row=25, sticky = E)
+        Entry( textvariable = self.simplifcation,width = 10).grid(padx=2,column=1, row=25,sticky=W)
 
         Label(text ="Red Threshold").grid(padx=2,column=0, row=30, sticky=E+S)
         Label(text ="Green Threshold").grid(padx=2,column=0, row=40, sticky=E+S)
@@ -117,10 +127,15 @@ class PhotoPoint(Tk):
         self.after(1000 / 15 , self._show_image)
         self.update = True
 
-    def _save_as(self):
-        filename = tkFileDialog.asksaveasfilename(**self.file_opt)
+    def _points_save_as(self):
+        filename = tkFileDialog.asksaveasfilename(**self.point_cloud_file_opt)
         if filename:
             self.point_could_output_file.set(filename)
+
+    def _video_save_as(self):
+        filename = tkFileDialog.asksaveasfilename(**self.video_file_opt)
+        if filename:
+            self.video_output_file.set(filename)
 
     def update_required(self, event = None):
         self.update = True
@@ -176,40 +191,19 @@ class PhotoPoint(Tk):
             )
 
     def process_video(self):
-        return
-        # self.api.process(
-        #     self.folder_name.get(), 
-        #     self.video_output_file.get(), 
-        #     self.rgb_threshold,
-        #     crop = self.crop.get(), 
-        #     offset = (self.x_offset.get(), self.y_offset.get())
-        #     self.call_back 
-        #     )
+        self.api.process_video(
+            self.folder_name.get(), 
+            self.video_output_file.get(), 
+            self.rgb_threshold,
+            crop = self.crop.get(), 
+            offset = (self.x_offset.get(), self.y_offset.get()),
+            callback = self.call_back 
+            )
 
 
     def close(self):
         self.destroy()
         sys.exit(0)
-
-# class PhotoPoint(Tk):
-    # def __init__(self,parent, path):
-    #     Tk.__init__(self,parent)
-    #     self.path = path 
-    #     self.geometry("1200x950")
-    #     self.title('Photo Point')
-          
-    #     self.parent = parent
-
-    #     self.start_main_window()
-
-    #     self.protocol("WM_DELETE_WINDOW", self.close)
-
-    # def start_main_window(self):
-    #     self.main = MainUI(self)
-
-    # def close(self):
-    #     self.destroy()
-    #     sys.exit(0)
 
 if __name__ == "__main__":
     if getattr(sys, 'frozen', False):
