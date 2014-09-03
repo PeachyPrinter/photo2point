@@ -10,7 +10,7 @@ import numpy as np
 import cv2
 
 class Photos2Points(threading.Thread):
-    def __init__(self, source_files, output_file, rgb_threshold, z_pixels, scale, simplification, call_back):
+    def __init__(self, source_files, output_file, rgb_threshold, z_pixels, scale, simplification, call_back, crop, offset):
         super(Photos2Points, self).__init__()
 
         self.source_files = source_files
@@ -20,6 +20,8 @@ class Photos2Points(threading.Thread):
         self.scale = scale
         self.simplification = simplification
         self.call_back = call_back
+        self.crop = crop
+        self.offset = offset
 
         self._ply_template = '''ply
 format ascii 1.0
@@ -41,7 +43,7 @@ end_header
         self.process()
 
     def process(self):
-        vertexes = []
+        vertexes = np.empty((0,6))
         good_verticies = -1
         z_pos = 0
         file_count = len(self.source_files)
@@ -51,30 +53,37 @@ end_header
         mut = 256.0 / ( ran * 1.0 )
 
         for index, afile in enumerate(self.source_files):
+            start = time.time()
             if self.call_back:
                 self.call_back("Processing: %s of %s : %s" % (index+1,file_count,afile))
+
             image = Image.open(afile)
-            width = image.size[0]
-            
-            for index, pixel in enumerate(image.getdata()):
-                if self._in_threshold(pixel) == True:
-                    good_verticies += 1
-                    if good_verticies % self.simplification == 0:
-                        x = (index % width) * self.scale
-                        y = (index / width) * self.scale
-                        z = z_pos * self.scale
-                        r,g,b = pixel
-                        b = int((b - self.rgb_threshold[2]) * mut)
-                        vertexes.append((x,y,z,255,b,b))
+            image_array = np.array(image)
+            height,width,c = image_array.shape
+            threshold_array =  np.ones((height,width,c)) * self.rgb_threshold
+            result = image_array >= threshold_array
+            result = np.sum(result, axis = 2)
+            y,x = np.where(result)
+            z = np.ones(y.shape[0]) * z_pos
+            d_c = image_array[(y,x)]
+            scaled_x = x * self.scale
+            scaled_y = y * self.scale
+            scaled_z = z * self.scale
+            points = np.rot90(np.vstack((scaled_x,scaled_y,scaled_z)))
+            coloured = np.hstack((points, d_c))
+            simplified = coloured[::self.simplification]
+            vertexes = np.vstack((vertexes,simplified))
             z_pos += self.z_pixels
+            total = time.time() - start
+            print('Processing: %s' % total)
 
         total_vertexes = len(vertexes)
         written_vertexes = 0
         print("Expected vertexes: %s" % total_vertexes)
         with open(self.output_file, 'w') as out_file:
             out_file.write(self._ply_template % (os.path.dirname(self.source_files[0]), total_vertexes ))
-            for index, vertex in enumerate(vertexes):
-                out_file.write("%s %s %s %s %s %s\n" % vertex)
+            for index, vertex in enumerate(vertexes.astype(int)):
+                out_file.write("%s %s %s %s %s %s\n" % tuple(vertex))
                 written_vertexes += 1
         if self.call_back:
             self.call_back("Complete, wrote %s vertexes" % written_vertexes)
