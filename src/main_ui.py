@@ -187,7 +187,9 @@ class PhotoPoint(Tk):
             self.z_space.get(), 
             float(self.scale.get()),
             self.simplifcation.get(),
-            self.call_back 
+            self.call_back ,
+            self.crop.get(),
+            (self.x_offset.get(), self.y_offset.get())
             )
 
     def process_video(self):

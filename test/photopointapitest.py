@@ -10,80 +10,80 @@ sys.path.insert(0,os.path.join(os.path.dirname(__file__), '..','src'))
 
 from photopointapi import PhotoPointApi, Photos2Points
 
-# class PhotoPointApiTests(unittest.TestCase):
-#     def setUp(self):
-#         self.test_folder = os.path.join(os.path.dirname(__file__), 'test_data')
-#         self.simple_test_folder = os.path.join(os.path.dirname(__file__), 'test_data_simple')
+class PhotoPointApiTests(unittest.TestCase):
+    def setUp(self):
+        self.test_folder = os.path.join(os.path.dirname(__file__), 'test_data')
+        self.simple_test_folder = os.path.join(os.path.dirname(__file__), 'test_data_simple')
         
     
-#     def test_count_images_in_folder_returns_correct_jpg_count(self):
-#         expected = 5
+    def test_count_images_in_folder_returns_correct_jpg_count(self):
+        expected = 5
 
-#         ppa = PhotoPointApi()
-#         actual = ppa.count_images_in_folder(self.test_folder)
+        ppa = PhotoPointApi()
+        actual = ppa.count_images_in_folder(self.test_folder)
 
-#         self.assertEquals(expected,actual)
+        self.assertEquals(expected,actual)
 
-#     def test_count_only_images_in_folder_returns_correct_count(self):
-#         test_folder = os.path.dirname(__file__)
-#         expected = 0
+    def test_count_only_images_in_folder_returns_correct_count(self):
+        test_folder = os.path.dirname(__file__)
+        expected = 0
 
-#         ppa = PhotoPointApi()
-#         actual = ppa.count_images_in_folder(test_folder)
+        ppa = PhotoPointApi()
+        actual = ppa.count_images_in_folder(test_folder)
 
-#         self.assertEquals(expected,actual)
+        self.assertEquals(expected,actual)
 
-#     def test_test_image_should_return_a_scaled_image_when_given_folder_with_images(self):
-#         expected_size = 128,72
-#         ppa = PhotoPointApi()
-#         (actual, filename) = ppa.test_image(self.test_folder,expected_size, None)
+    def test_test_image_should_return_a_scaled_image_when_given_folder_with_images(self):
+        expected_size = 128,72
+        ppa = PhotoPointApi()
+        (actual, filename) = ppa.test_image(self.test_folder,expected_size, None)
 
-#         self.assertEquals(expected_size[0],actual.size[0])
-#         self.assertEquals(expected_size[1],actual.size[1])
+        self.assertEquals(expected_size[0],actual.size[0])
+        self.assertEquals(expected_size[1],actual.size[1])
 
-#     def test_test_image_should_return_a_altered_image_when_given_threshold(self):
-#         expected_size = 128,72
-#         ppa = PhotoPointApi()
-#         threshold = 255,255,255
-#         (actual, filename) = ppa.test_image(self.test_folder,expected_size, threshold, background = 217)
-#         for pixel in actual.getdata():
-#             self.assertEquals((217,217,217), pixel)
+    def test_test_image_should_return_a_altered_image_when_given_threshold(self):
+        expected_size = 128,72
+        ppa = PhotoPointApi()
+        threshold = 255,255,255
+        (actual, filename) = ppa.test_image(self.test_folder,expected_size, threshold, background = 217)
+        for pixel in actual.getdata():
+            self.assertEquals((217,217,217), pixel)
 
-#     def test_test_image_should_return_a_altered_image_with_specified_background(self):
-#         expected_size = 128,72
-#         ppa = PhotoPointApi()
-#         threshold = 255,255,255
-#         (actual, filename) = ppa.test_image(self.test_folder,expected_size, threshold, None, 0)
-#         for pixel in actual.getdata():
-#             self.assertEquals((0,0,0), pixel)
+    def test_test_image_should_return_a_altered_image_with_specified_background(self):
+        expected_size = 128,72
+        ppa = PhotoPointApi()
+        threshold = 255,255,255
+        (actual, filename) = ppa.test_image(self.test_folder,expected_size, threshold, None, 0)
+        for pixel in actual.getdata():
+            self.assertEquals((0,0,0), pixel)
 
-#     def test_test_image_should_use_middle_image(self):
-#         expected = os.path.join(self.test_folder, 'DSC_6751.JPG')
-#         expected_size = 128,72
-#         ppa = PhotoPointApi()
-#         (actual, filename) = ppa.test_image(self.test_folder,expected_size, None)
-#         self.assertEquals(expected , filename)
+    def test_test_image_should_use_middle_image(self):
+        expected = os.path.join(self.test_folder, 'DSC_6751.JPG')
+        expected_size = 128,72
+        ppa = PhotoPointApi()
+        (actual, filename) = ppa.test_image(self.test_folder,expected_size, None)
+        self.assertEquals(expected , filename)
 
-#     def test_test_image_should_use_specifed_image(self):
-#         expected = os.path.join(self.test_folder, 'DSC_6752.JPG')
-#         expected_size = 128,72
-#         ppa = PhotoPointApi()
-#         (actual, filename) = ppa.test_image(self.test_folder,expected_size, None, 4)
-#         self.assertEquals(expected , filename)
+    def test_test_image_should_use_specifed_image(self):
+        expected = os.path.join(self.test_folder, 'DSC_6752.JPG')
+        expected_size = 128,72
+        ppa = PhotoPointApi()
+        (actual, filename) = ppa.test_image(self.test_folder,expected_size, None, 4)
+        self.assertEquals(expected , filename)
 
-#     def test_test_image_should_crop_specifed_image(self):
-#         expected = os.path.join(self.test_folder, 'DSC_6752.JPG')
-#         expected_size = 64,36
-#         ppa = PhotoPointApi()
-#         (actual, filename) = ppa.test_image(self.test_folder,expected_size, None, 4, crop = 50)
-#         self.assertEquals(expected_size,actual.size)
+    def test_test_image_should_crop_specifed_image(self):
+        expected = os.path.join(self.test_folder, 'DSC_6752.JPG')
+        expected_size = 64,36
+        ppa = PhotoPointApi()
+        (actual, filename) = ppa.test_image(self.test_folder,expected_size, None, 4, crop = 50)
+        self.assertEquals(expected_size,actual.size)
 
-#     def test_test_image_should_offset_when_croped_specifed_image(self):
-#         expected = os.path.join(self.test_folder, 'DSC_6752.JPG')
-#         expected_size = 64,36
-#         ppa = PhotoPointApi()
-#         (actual, filename) = ppa.test_image(self.test_folder,expected_size, None, 4, crop = 50, offset = (10,10))
-#         self.assertEquals(expected_size,actual.size)
+    def test_test_image_should_offset_when_croped_specifed_image(self):
+        expected = os.path.join(self.test_folder, 'DSC_6752.JPG')
+        expected_size = 64,36
+        ppa = PhotoPointApi()
+        (actual, filename) = ppa.test_image(self.test_folder,expected_size, None, 4, crop = 50, offset = (10,10))
+        self.assertEquals(expected_size,actual.size)
 
 class Photos2PointsTests(unittest.TestCase):
 
@@ -164,7 +164,7 @@ end_header
                             )
         ppa.start()
         ppa.join()
-        expected_points ='''46 52 0 255 255 255\n46 52 1 255 255 255\n46 52 2 255 255 255\n'''
+        expected_points ='''46.0 52.0 0.0 255 255 255\n46.0 52.0 1.0 255 255 255\n46.0 52.0 2.0 255 255 255\n'''
         with open(self.output_file, 'r') as actual:
             data = actual.read()
             self.assertTrue(data.endswith(expected_points),"Expected: [%s] but was [%s]" % (expected_points, data) )
@@ -184,7 +184,7 @@ end_header
                             )
         ppa.start()
         ppa.join()
-        expected_points ='''46 52 0 255 255 255\n46 52 2 255 255 255\n46 52 4 255 255 255\n'''
+        expected_points ='''46.0 52.0 0.0 255 255 255\n46.0 52.0 2.0 255 255 255\n46.0 52.0 4.0 255 255 255\n'''
         with open(self.output_file, 'r') as actual:
             data = actual.read()
             self.assertTrue(data.endswith(expected_points),"Expected: [%s] but was [%s]" % (expected_points, data) )
@@ -192,7 +192,7 @@ end_header
     def test_process_should_scale_points(self):
         test_threshold = (255,255,255)
         test_z_pixels = 1
-        scale = 10
+        scale = 0.1
         ppa = Photos2Points(self.simple_test_files,
                             self.output_file,
                             test_threshold, 
@@ -205,7 +205,7 @@ end_header
                             )
         ppa.start()
         ppa.join()
-        expected_points ='''460 520 0 255 255 255\n460 520 10 255 255 255\n460 520 20 255 255 255\n'''
+        expected_points ='''4.6 5.2 0.0 255 255 255\n4.6 5.2 0.1 255 255 255\n4.6 5.2 0.2 255 255 255\n'''
         with open(self.output_file, 'r') as actual:
             data = actual.read()
             self.assertTrue(data.endswith(expected_points),"Expected: [%s] but was [%s]" % (expected_points, data) )
@@ -226,11 +226,33 @@ end_header
                             )
         ppa.start()
         ppa.join()
-        expected_points = 8942
+        expected_points = 11450
         with open(self.output_file, 'r') as actual:
             data = actual.read()
             points = data.split("end_header\n")[1]
             self.assertEquals(expected_points, len(points) )
+
+    def test_process_should_crop_and_offset_image_first(self):
+        test_threshold = (255,255,255)
+        test_z_pixels = 1
+        ppa = Photos2Points(self.simple_test_files,
+                            self.output_file,
+                            test_threshold, 
+                            test_z_pixels, 
+                            1, 
+                            1, 
+                            None,
+                            50,
+                            (10,10)
+                            )
+        ppa.start()
+        ppa.join()
+        expected_points ='''31.0 37.0 0.0 255 255 255\n31.0 37.0 1.0 255 255 255\n31.0 37.0 2.0 255 255 255\n'''
+        with open(self.output_file, 'r') as actual:
+            data = actual.read()
+            self.assertTrue(data.endswith(expected_points),"Expected: [%s] but was [%s]" % (expected_points, data) )
+
+
         
 
 

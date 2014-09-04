@@ -42,6 +42,21 @@ end_header
     def run(self):
         self.process()
 
+    def crop_image(self,image,crop,offset):
+        x_dim,y_dim = image.size
+
+        ydiff = int(float(y_dim) * float(crop) / 100.0 / 2.0)
+        xdiff = int(float(x_dim) * float(crop) / 100.0 / 2.0)
+
+        off_x = int(float(offset[0]) / 100.0 * float(x_dim))
+        off_y = int(float(offset[1]) / 100.0 * float(y_dim))
+        if abs(off_x) > xdiff:
+            off_x = xdiff * (abs(off_x) / off_x)
+        if abs(off_y) > ydiff:
+            off_y = ydiff * (abs(off_y) / off_y)
+        image = ImageChops.offset(image, off_x,off_y)
+        return image.crop((xdiff,ydiff,x_dim - xdiff, y_dim - ydiff))
+
     def process(self):
         vertexes = np.empty((0,6))
         good_verticies = -1
@@ -56,8 +71,9 @@ end_header
             start = time.time()
             if self.call_back:
                 self.call_back("Processing: %s of %s : %s" % (index+1,file_count,afile))
+            image_file = Image.open(afile)
+            image = self.crop_image(image_file,self.crop,self.offset)
 
-            image = Image.open(afile)
             image_array = np.array(image)
             height,width,c = image_array.shape
             threshold_array =  np.ones((height,width,c)) * self.rgb_threshold
@@ -82,8 +98,8 @@ end_header
         print("Expected vertexes: %s" % total_vertexes)
         with open(self.output_file, 'w') as out_file:
             out_file.write(self._ply_template % (os.path.dirname(self.source_files[0]), total_vertexes ))
-            for index, vertex in enumerate(vertexes.astype(int)):
-                out_file.write("%s %s %s %s %s %s\n" % tuple(vertex))
+            for index, vertex in enumerate(vertexes):
+                out_file.write("%s %s %s %d %d %d\n" % tuple(vertex))
                 written_vertexes += 1
         if self.call_back:
             self.call_back("Complete, wrote %s vertexes" % written_vertexes)
@@ -126,19 +142,19 @@ class PhotoPointApi(object):
         test_image_file = images[image_to_use]
         image = Image.open(test_image_file)
 
-        x,y = image.size
+        x_dim,y_dim = image.size
 
-        ydiff = int(float(y) * float(crop) / 100.0 / 2.0)
-        xdiff = int(float(x) * float(crop) / 100.0 / 2.0)
+        ydiff = int(float(y_dim) * float(crop) / 100.0 / 2.0)
+        xdiff = int(float(x_dim) * float(crop) / 100.0 / 2.0)
 
-        off_x = int(float(offset[0]) / 100.0 * float(x))
-        off_y = int(float(offset[1]) / 100.0 * float(y))
+        off_x = int(float(offset[0]) / 100.0 * float(x_dim))
+        off_y = int(float(offset[1]) / 100.0 * float(y_dim))
         if abs(off_x) > xdiff:
             off_x = xdiff * (abs(off_x) / off_x)
         if abs(off_y) > ydiff:
             off_y = ydiff * (abs(off_y) / off_y)
         image = ImageChops.offset(image, off_x,off_y)
-        image = image.crop((xdiff,ydiff,x - xdiff, y - ydiff))
+        image = image.crop((xdiff,ydiff,x_dim - xdiff, y_dim - ydiff))
 
 
         image.thumbnail(size)
@@ -152,9 +168,9 @@ class PhotoPointApi(object):
         return (image, test_image_file)
 
 
-    def process(self, source_folder, output_file, rgb_threshold, z_pixels, scale, simplification, call_back):
+    def process(self, source_folder, output_file, rgb_threshold, z_pixels, scale, simplification, call_back,crop,offset):
         files = self._files(source_folder)
-        converter = Photos2Points(files, output_file, rgb_threshold, z_pixels, scale, simplification, call_back)
+        converter = Photos2Points(files, output_file, rgb_threshold, z_pixels, scale, simplification, call_back,crop,offset)
         converter.start()
 
     def process_video(self, source_folder, output_file, rgb_threshold, crop = 0, offset = (0,0), callback = None):
