@@ -9,6 +9,46 @@ import time
 import numpy as np
 import cv2
 
+class PhotoProcessor(object):
+
+    def crop_image(self,image,crop,offset):
+        x_dim,y_dim = image.size
+
+        ydiff = int(float(y_dim) * float(crop) / 100.0 / 2.0)
+        xdiff = int(float(x_dim) * float(crop) / 100.0 / 2.0)
+
+        off_x = int(float(offset[0]) / 100.0 * float(x_dim))
+        off_y = int(float(offset[1]) / 100.0 * float(y_dim))
+        if abs(off_x) > xdiff:
+            off_x = xdiff * (abs(off_x) / off_x)
+        if abs(off_y) > ydiff:
+            off_y = ydiff * (abs(off_y) / off_y)
+        image = ImageChops.offset(image, off_x,off_y)
+        return image.crop((xdiff,ydiff,x_dim - xdiff, y_dim - ydiff))
+
+    def get_image(self, source_file, rgb_threshold, crop, offset):
+        pass
+
+    def get_points(self, source_file, rgb_threshold, z_pos, scale, simplification, crop, offset):
+        image_file = Image.open(source_file)
+        image = self.crop_image(image_file,crop,offset)
+        image_array = np.array(image)
+        height,width,c = image_array.shape
+        threshold_array =  np.ones((height,width,c)) * rgb_threshold
+        result = image_array >= threshold_array
+        result = np.sum(result, axis = 2)
+        y,x = np.where(result)
+        z = np.ones(y.shape[0]) * z_pos
+        d_c = image_array[(y,x)]
+        scaled_x = x * scale
+        scaled_y = y * scale
+        scaled_z = z * scale
+        points = np.rot90(np.vstack((scaled_x,scaled_y,scaled_z)))
+        coloured = np.hstack((points, d_c))
+        simplified = coloured[::simplification]
+        return simplified
+
+
 class Photos2Points(threading.Thread):
     def __init__(self, source_files, output_file, rgb_threshold, z_pixels, scale, simplification, call_back, crop, offset):
         super(Photos2Points, self).__init__()
@@ -22,6 +62,7 @@ class Photos2Points(threading.Thread):
         self.call_back = call_back
         self.crop = crop
         self.offset = offset
+        self.photo_processor = PhotoProcessor()
 
         self._ply_template = '''ply
 format ascii 1.0
@@ -42,21 +83,6 @@ end_header
     def run(self):
         self.process()
 
-    def crop_image(self,image,crop,offset):
-        x_dim,y_dim = image.size
-
-        ydiff = int(float(y_dim) * float(crop) / 100.0 / 2.0)
-        xdiff = int(float(x_dim) * float(crop) / 100.0 / 2.0)
-
-        off_x = int(float(offset[0]) / 100.0 * float(x_dim))
-        off_y = int(float(offset[1]) / 100.0 * float(y_dim))
-        if abs(off_x) > xdiff:
-            off_x = xdiff * (abs(off_x) / off_x)
-        if abs(off_y) > ydiff:
-            off_y = ydiff * (abs(off_y) / off_y)
-        image = ImageChops.offset(image, off_x,off_y)
-        return image.crop((xdiff,ydiff,x_dim - xdiff, y_dim - ydiff))
-
     def process(self):
         vertexes = np.empty((0,6))
         good_verticies = -1
@@ -64,78 +90,13 @@ end_header
         file_count = len(self.source_files)
         if file_count < 1:
             raise Exception("Folder is devoid of images, so sad :(")
-        ran = 256 - self.rgb_threshold[2]
-        mut = 256.0 / ( ran * 1.0 )
-
         for index, afile in enumerate(self.source_files):
             start = time.time()
             if self.call_back:
                 self.call_back("Processing: %s of %s : %s" % (index+1,file_count,afile))
-            image_file = Image.open(afile)
-            image = self.crop_image(image_file,self.crop,self.offset)
-            end = time.time()
-            print('1Processing: %.4f' % (end - start))
-            start = time.time()
-            image_array = np.array(image)
-            end = time.time()
-            print('2Processing: %.4f' % (end - start))
-            start = time.time()
-            height,width,c = image_array.shape
-            end = time.time()
-            print('3Processing: %.4f' % (end - start))
-            start = time.time()
-            threshold_array =  np.ones((height,width,c)) * self.rgb_threshold
-            end = time.time()
-            print('4Processing: %.4f' % (end - start))
-            start = time.time()
-            result = image_array >= threshold_array
-            end = time.time()
-            print('5Processing: %.4f' % (end - start))
-            start = time.time()
-            result = np.sum(result, axis = 2)
-            end = time.time()
-            print('6Processing: %.4f' % (end - start))
-            start = time.time()
-            y,x = np.where(result)
-            end = time.time()
-            print('7Processing: %.4f' % (end - start))
-            start = time.time()
-            z = np.ones(y.shape[0]) * z_pos
-            end = time.time()
-            print('8Processing: %.4f' % (end - start))
-            start = time.time()
-            d_c = image_array[(y,x)]
-            end = time.time()
-            print('9Processing: %.4f' % (end - start))
-            start = time.time()
-            scaled_x = x * self.scale
-            scaled_y = y * self.scale
-            scaled_z = z * self.scale
-            end = time.time()
-            print('aProcessing: %.4f' % (end - start))
-            start = time.time()
-            points = np.rot90(np.vstack((scaled_x,scaled_y,scaled_z)))
-            end = time.time()
-            print('bProcessing: %.4f' % (end - start))
-            start = time.time()
-            coloured = np.hstack((points, d_c))
-            end = time.time()
-            print('cProcessing: %.4f' % (end - start))
-            start = time.time()
-            simplified = coloured[::self.simplification]
-            end = time.time()
-            print('dProcessing: %.4f' % (end - start))
-            start = time.time()
-            vertexes = np.vstack((vertexes,simplified))
-            end = time.time()
-            print('eProcessing: %.4f' % (end - start))
-            start = time.time()
+            results = self.photo_processor.get_points(afile,self.rgb_threshold, z_pos, self.scale, self.simplification, self.crop, self.offset)
+            vertexes = np.vstack((vertexes,results))
             z_pos += self.z_pixels
-            end = time.time()
-            print('fProcessing: %.4f' % (end - start))
-            start = time.time()
-            print('')
-
         total_vertexes = len(vertexes)
         written_vertexes = 0
         print("Expected vertexes: %s" % total_vertexes)

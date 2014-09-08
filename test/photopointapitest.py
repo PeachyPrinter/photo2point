@@ -4,11 +4,12 @@ from os import listdir
 import sys
 from PIL import Image, ImageTk
 import shutil
+import numpy as np
 
 
 sys.path.insert(0,os.path.join(os.path.dirname(__file__), '..','src'))
 
-from photopointapi import PhotoPointApi, Photos2Points
+from photopointapi import PhotoPointApi, Photos2Points, PhotoProcessor
 
 class PhotoPointApiTests(unittest.TestCase):
     def setUp(self):
@@ -85,6 +86,92 @@ class PhotoPointApiTests(unittest.TestCase):
         (actual, filename) = ppa.test_image(self.test_folder,expected_size, None, 4, crop = 50, offset = (10,10))
         self.assertEquals(expected_size,actual.size)
 
+class PhotoProcessorTests(unittest.TestCase):
+    def setUp(self):
+        self.test_folder = os.path.join(os.path.dirname(__file__), 'test_data')
+        self.test_file = sorted([ os.path.join(self.test_folder,f) for f in listdir(self.test_folder)])[0]
+        self.simple_test_folder = os.path.join(os.path.dirname(__file__), 'test_data_simple')
+        self.simple_test_file = sorted([ os.path.join(self.simple_test_folder,f) for f in listdir(self.simple_test_folder)])[0]
+        self.photo_processor = PhotoProcessor()
+
+    def test_get_points_should_add_points_above_threshold(self):
+        test_threshold = (255,255,255)
+        test_z_pos = 0
+        scale = 1
+        simplification = 1
+        crop = 0
+        offset = (0,0)
+        result = self.photo_processor.get_points(self.simple_test_file,
+                            test_threshold, 
+                            test_z_pos, 
+                            scale, 
+                            simplification, 
+                            crop,
+                            offset
+                            )
+        expected_points =np.array([[46.0, 52.0, 0.0, 255, 255, 255,]])
+        self.assertTrue(np.allclose(expected_points , result))
+
+    def test_get_points_should_scale_points(self):
+        test_threshold = (255,255,255)
+        test_z_pos = 0
+        scale = 0.1
+        simplification = 1
+        crop = 0
+        offset = (0,0)
+        result = self.photo_processor.get_points(self.simple_test_file,
+                            test_threshold, 
+                            test_z_pos, 
+                            scale, 
+                            simplification, 
+                            crop,
+                            offset
+                            )
+
+        expected_points = np.array([[4.6,5.2,0.0,255,255,255]])
+        self.assertTrue(np.allclose(expected_points , result))
+
+    def test_get_points_should_simplify_points(self):
+        test_threshold = (255,255,255)
+        test_z_pos = 0
+        scale = 0.1
+        simplification = 10
+        crop = 0
+        offset = (0,0)
+        result = self.photo_processor.get_points(self.test_file,
+                            test_threshold, 
+                            test_z_pos, 
+                            scale, 
+                            simplification, 
+                            crop,
+                            offset
+                            )
+
+        expected_points = 6
+        actual_points = result.shape[0]
+        self.assertEquals(expected_points,actual_points)
+
+    def test_get_points_should_crop_and_offset_image_first(self):
+        test_threshold = (255,255,255)
+        test_z_pos = 0
+        scale = 1
+        simplification = 1
+        crop = 50
+        offset = (10,10)
+        result = self.photo_processor.get_points(self.simple_test_file,
+                            test_threshold, 
+                            test_z_pos, 
+                            scale, 
+                            simplification, 
+                            crop,
+                            offset
+                            )
+
+        expected_points = np.array([[31.0,37.0,0.0,255,255,255]])
+        self.assertTrue(np.allclose(expected_points , result))
+
+   
+
 class Photos2PointsTests(unittest.TestCase):
 
     def setUp(self):
@@ -149,26 +236,6 @@ end_header
             data = actual.read()
             self.assertTrue(data.startswith(expected_headers),data )
 
-    def test_process_should_add_points_above_threshold(self):
-        test_threshold = (255,255,255)
-        test_z_pixels = 1
-        ppa = Photos2Points(self.simple_test_files,
-                            self.output_file,
-                            test_threshold, 
-                            test_z_pixels, 
-                            1, 
-                            1, 
-                            None,
-                            0,
-                            (0,0)
-                            )
-        ppa.start()
-        ppa.join()
-        expected_points ='''46.0 52.0 0.0 255 255 255\n46.0 52.0 1.0 255 255 255\n46.0 52.0 2.0 255 255 255\n'''
-        with open(self.output_file, 'r') as actual:
-            data = actual.read()
-            self.assertTrue(data.endswith(expected_points),"Expected: [%s] but was [%s]" % (expected_points, data) )
-
     def test_process_should_add_points_above_threshold_with_correct_z(self):
         test_threshold = (255,255,255)
         test_z_pixels = 2
@@ -188,72 +255,6 @@ end_header
         with open(self.output_file, 'r') as actual:
             data = actual.read()
             self.assertTrue(data.endswith(expected_points),"Expected: [%s] but was [%s]" % (expected_points, data) )
-
-    def test_process_should_scale_points(self):
-        test_threshold = (255,255,255)
-        test_z_pixels = 1
-        scale = 0.1
-        ppa = Photos2Points(self.simple_test_files,
-                            self.output_file,
-                            test_threshold, 
-                            test_z_pixels, 
-                            scale, 
-                            1, 
-                            None,
-                            0,
-                            (0,0)
-                            )
-        ppa.start()
-        ppa.join()
-        expected_points ='''4.6 5.2 0.0 255 255 255\n4.6 5.2 0.1 255 255 255\n4.6 5.2 0.2 255 255 255\n'''
-        with open(self.output_file, 'r') as actual:
-            data = actual.read()
-            self.assertTrue(data.endswith(expected_points),"Expected: [%s] but was [%s]" % (expected_points, data) )
-
-    def test_process_should_simplify_points(self):
-        test_threshold = (255,255,255)
-        test_z_pixels = 1
-        test_simplification = 2
-        ppa = Photos2Points(self.test_files,
-                            self.output_file,
-                            test_threshold,
-                            test_z_pixels,
-                            1,
-                            test_simplification,
-                            None,
-                            0,
-                            (0,0)
-                            )
-        ppa.start()
-        ppa.join()
-        expected_points = 11450
-        with open(self.output_file, 'r') as actual:
-            data = actual.read()
-            points = data.split("end_header\n")[1]
-            self.assertEquals(expected_points, len(points) )
-
-    def test_process_should_crop_and_offset_image_first(self):
-        test_threshold = (255,255,255)
-        test_z_pixels = 1
-        ppa = Photos2Points(self.simple_test_files,
-                            self.output_file,
-                            test_threshold, 
-                            test_z_pixels, 
-                            1, 
-                            1, 
-                            None,
-                            50,
-                            (10,10)
-                            )
-        ppa.start()
-        ppa.join()
-        expected_points ='''31.0 37.0 0.0 255 255 255\n31.0 37.0 1.0 255 255 255\n31.0 37.0 2.0 255 255 255\n'''
-        with open(self.output_file, 'r') as actual:
-            data = actual.read()
-            self.assertTrue(data.endswith(expected_points),"Expected: [%s] but was [%s]" % (expected_points, data) )
-
-
-        
 
 
 if __name__ == '__main__':
