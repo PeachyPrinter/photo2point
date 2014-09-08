@@ -34,7 +34,8 @@ class PhotoProcessor(object):
     def _mask_of_valid_points(self, image_array, rgb_threshold):
         height,width,c = image_array.shape
         threshold_array =  np.ones((height,width,c)) * rgb_threshold
-        return image_array >= threshold_array
+        rgb_mask = image_array >= threshold_array
+        return np.prod(rgb_mask, axis = 2, keepdims = True)
 
     def get_image(self, source_file, rgb_threshold, crop, offset, background = (0,0,0)):
         image_array = self._load_image(source_file,crop,offset)
@@ -46,7 +47,7 @@ class PhotoProcessor(object):
     def get_points(self, source_file, rgb_threshold, z_pos, scale, simplification, crop, offset):
         image_array = self._load_image(source_file,crop,offset)
         mask = self._mask_of_valid_points(image_array, rgb_threshold)
-        result = np.sum(mask, axis = 2)
+        result = np.prod(mask, axis = 2)
         y,x = np.where(result)
         z = np.ones(y.shape[0]) * z_pos
         d_c = image_array[(y,x)]

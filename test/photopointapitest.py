@@ -49,6 +49,7 @@ class PhotoProcessorTests(unittest.TestCase):
         self.simple_test_folder = os.path.join(os.path.dirname(__file__), 'test_data_simple')
         self.simple_test_file1 = sorted([ os.path.join(self.simple_test_folder,f) for f in listdir(self.simple_test_folder)])[0]
         self.simple_test_file2 = sorted([ os.path.join(self.simple_test_folder,f) for f in listdir(self.simple_test_folder)])[1]
+        self.simple_test_file4 = sorted([ os.path.join(self.simple_test_folder,f) for f in listdir(self.simple_test_folder)])[3]
         self.photo_processor = PhotoProcessor()
 
     def assert_image_equal(self,im1, im2):
@@ -95,7 +96,7 @@ class PhotoProcessorTests(unittest.TestCase):
         self.assertTrue(np.allclose(expected_points , result))
 
     def test_get_points_should_simplify_points(self):
-        test_threshold = (255,255,255)
+        test_threshold = (0,0,255)
         test_z_pos = 0
         scale = 0.1
         simplification = 10
@@ -144,6 +145,19 @@ class PhotoProcessorTests(unittest.TestCase):
                             )
         expected_image = np.zeros((100,100,3))
         expected_image[52][46] = np.array([255,255,255])
+        self.assertTrue(np.allclose(np.array(expected_image) , np.array(result)))
+
+    def test_get_image_should_blacken_points_below_threshold_special(self):
+        test_threshold = (255,64,0)
+        crop = 0
+        offset = (0,0)
+        result = self.photo_processor.get_image(self.simple_test_file4,
+                            test_threshold, 
+                            crop,
+                            offset
+                            )
+        expected_image = np.zeros((100,100,3))
+        # expected_image[41][46] = np.array([255,64,0])
         self.assertTrue(np.allclose(np.array(expected_image) , np.array(result)))
 
     def test_get_image_should_return_a_altered_image_with_specified_background(self):
