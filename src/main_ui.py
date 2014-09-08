@@ -62,11 +62,11 @@ class PhotoPoint(Tk):
         self.y_offset.set(0)
 
         self.z_space = IntVar()
-        self.z_space.set(2)
+        self.z_space.set(5)
         self.scale = DoubleVar()
         self.scale.set(0.001)
         self.simplifcation = IntVar()
-        self.simplifcation.set(10)
+        self.simplifcation.set(20)
 
         self.red_threshold = IntVar()
         self.red_threshold.set(40)

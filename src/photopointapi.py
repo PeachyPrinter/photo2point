@@ -73,25 +73,68 @@ end_header
                 self.call_back("Processing: %s of %s : %s" % (index+1,file_count,afile))
             image_file = Image.open(afile)
             image = self.crop_image(image_file,self.crop,self.offset)
-
+            end = time.time()
+            print('1Processing: %.4f' % (end - start))
+            start = time.time()
             image_array = np.array(image)
+            end = time.time()
+            print('2Processing: %.4f' % (end - start))
+            start = time.time()
             height,width,c = image_array.shape
+            end = time.time()
+            print('3Processing: %.4f' % (end - start))
+            start = time.time()
             threshold_array =  np.ones((height,width,c)) * self.rgb_threshold
+            end = time.time()
+            print('4Processing: %.4f' % (end - start))
+            start = time.time()
             result = image_array >= threshold_array
+            end = time.time()
+            print('5Processing: %.4f' % (end - start))
+            start = time.time()
             result = np.sum(result, axis = 2)
+            end = time.time()
+            print('6Processing: %.4f' % (end - start))
+            start = time.time()
             y,x = np.where(result)
+            end = time.time()
+            print('7Processing: %.4f' % (end - start))
+            start = time.time()
             z = np.ones(y.shape[0]) * z_pos
+            end = time.time()
+            print('8Processing: %.4f' % (end - start))
+            start = time.time()
             d_c = image_array[(y,x)]
+            end = time.time()
+            print('9Processing: %.4f' % (end - start))
+            start = time.time()
             scaled_x = x * self.scale
             scaled_y = y * self.scale
             scaled_z = z * self.scale
+            end = time.time()
+            print('aProcessing: %.4f' % (end - start))
+            start = time.time()
             points = np.rot90(np.vstack((scaled_x,scaled_y,scaled_z)))
+            end = time.time()
+            print('bProcessing: %.4f' % (end - start))
+            start = time.time()
             coloured = np.hstack((points, d_c))
+            end = time.time()
+            print('cProcessing: %.4f' % (end - start))
+            start = time.time()
             simplified = coloured[::self.simplification]
+            end = time.time()
+            print('dProcessing: %.4f' % (end - start))
+            start = time.time()
             vertexes = np.vstack((vertexes,simplified))
+            end = time.time()
+            print('eProcessing: %.4f' % (end - start))
+            start = time.time()
             z_pos += self.z_pixels
-            total = time.time() - start
-            print('Processing: %s' % total)
+            end = time.time()
+            print('fProcessing: %.4f' % (end - start))
+            start = time.time()
+            print('')
 
         total_vertexes = len(vertexes)
         written_vertexes = 0
