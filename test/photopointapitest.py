@@ -2,7 +2,7 @@ import unittest
 import os
 from os import listdir
 import sys
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageChops
 import shutil
 import numpy as np
 
@@ -15,8 +15,7 @@ class PhotoPointApiTests(unittest.TestCase):
     def setUp(self):
         self.test_folder = os.path.join(os.path.dirname(__file__), 'test_data')
         self.simple_test_folder = os.path.join(os.path.dirname(__file__), 'test_data_simple')
-        
-    
+
     def test_count_images_in_folder_returns_correct_jpg_count(self):
         expected = 5
 
@@ -37,62 +36,26 @@ class PhotoPointApiTests(unittest.TestCase):
     def test_test_image_should_return_a_scaled_image_when_given_folder_with_images(self):
         expected_size = 128,72
         ppa = PhotoPointApi()
-        (actual, filename) = ppa.test_image(self.test_folder,expected_size, None)
+        (actual, filename) = ppa.test_image(self.test_folder,expected_size, (0,0,0),4)
 
         self.assertEquals(expected_size[0],actual.size[0])
         self.assertEquals(expected_size[1],actual.size[1])
 
-    def test_test_image_should_return_a_altered_image_when_given_threshold(self):
-        expected_size = 128,72
-        ppa = PhotoPointApi()
-        threshold = 255,255,255
-        (actual, filename) = ppa.test_image(self.test_folder,expected_size, threshold, background = 217)
-        for pixel in actual.getdata():
-            self.assertEquals((217,217,217), pixel)
-
-    def test_test_image_should_return_a_altered_image_with_specified_background(self):
-        expected_size = 128,72
-        ppa = PhotoPointApi()
-        threshold = 255,255,255
-        (actual, filename) = ppa.test_image(self.test_folder,expected_size, threshold, None, 0)
-        for pixel in actual.getdata():
-            self.assertEquals((0,0,0), pixel)
-
-    def test_test_image_should_use_middle_image(self):
-        expected = os.path.join(self.test_folder, 'DSC_6751.JPG')
-        expected_size = 128,72
-        ppa = PhotoPointApi()
-        (actual, filename) = ppa.test_image(self.test_folder,expected_size, None)
-        self.assertEquals(expected , filename)
-
-    def test_test_image_should_use_specifed_image(self):
-        expected = os.path.join(self.test_folder, 'DSC_6752.JPG')
-        expected_size = 128,72
-        ppa = PhotoPointApi()
-        (actual, filename) = ppa.test_image(self.test_folder,expected_size, None, 4)
-        self.assertEquals(expected , filename)
-
-    def test_test_image_should_crop_specifed_image(self):
-        expected = os.path.join(self.test_folder, 'DSC_6752.JPG')
-        expected_size = 64,36
-        ppa = PhotoPointApi()
-        (actual, filename) = ppa.test_image(self.test_folder,expected_size, None, 4, crop = 50)
-        self.assertEquals(expected_size,actual.size)
-
-    def test_test_image_should_offset_when_croped_specifed_image(self):
-        expected = os.path.join(self.test_folder, 'DSC_6752.JPG')
-        expected_size = 64,36
-        ppa = PhotoPointApi()
-        (actual, filename) = ppa.test_image(self.test_folder,expected_size, None, 4, crop = 50, offset = (10,10))
-        self.assertEquals(expected_size,actual.size)
 
 class PhotoProcessorTests(unittest.TestCase):
     def setUp(self):
         self.test_folder = os.path.join(os.path.dirname(__file__), 'test_data')
         self.test_file = sorted([ os.path.join(self.test_folder,f) for f in listdir(self.test_folder)])[0]
         self.simple_test_folder = os.path.join(os.path.dirname(__file__), 'test_data_simple')
-        self.simple_test_file = sorted([ os.path.join(self.simple_test_folder,f) for f in listdir(self.simple_test_folder)])[0]
+        self.simple_test_file1 = sorted([ os.path.join(self.simple_test_folder,f) for f in listdir(self.simple_test_folder)])[0]
+        self.simple_test_file2 = sorted([ os.path.join(self.simple_test_folder,f) for f in listdir(self.simple_test_folder)])[1]
         self.photo_processor = PhotoProcessor()
+
+    def assert_image_equal(self,im1, im2):
+        if (ImageChops.difference(im1, im2).getbbox() is None):
+            return
+        else:
+            raise AssertionError("Images are not the same")
 
     def test_get_points_should_add_points_above_threshold(self):
         test_threshold = (255,255,255)
@@ -101,7 +64,7 @@ class PhotoProcessorTests(unittest.TestCase):
         simplification = 1
         crop = 0
         offset = (0,0)
-        result = self.photo_processor.get_points(self.simple_test_file,
+        result = self.photo_processor.get_points(self.simple_test_file1,
                             test_threshold, 
                             test_z_pos, 
                             scale, 
@@ -119,7 +82,7 @@ class PhotoProcessorTests(unittest.TestCase):
         simplification = 1
         crop = 0
         offset = (0,0)
-        result = self.photo_processor.get_points(self.simple_test_file,
+        result = self.photo_processor.get_points(self.simple_test_file1,
                             test_threshold, 
                             test_z_pos, 
                             scale, 
@@ -158,7 +121,7 @@ class PhotoProcessorTests(unittest.TestCase):
         simplification = 1
         crop = 50
         offset = (10,10)
-        result = self.photo_processor.get_points(self.simple_test_file,
+        result = self.photo_processor.get_points(self.simple_test_file1,
                             test_threshold, 
                             test_z_pos, 
                             scale, 
@@ -170,7 +133,46 @@ class PhotoProcessorTests(unittest.TestCase):
         expected_points = np.array([[31.0,37.0,0.0,255,255,255]])
         self.assertTrue(np.allclose(expected_points , result))
 
-   
+    def test_get_image_should_blacken_points_below_threshold(self):
+        test_threshold = (255,255,255)
+        crop = 0
+        offset = (0,0)
+        result = self.photo_processor.get_image(self.simple_test_file1,
+                            test_threshold, 
+                            crop,
+                            offset
+                            )
+        expected_image = np.zeros((100,100,3))
+        expected_image[52][46] = np.array([255,255,255])
+        self.assertTrue(np.allclose(np.array(expected_image) , np.array(result)))
+
+    def test_get_image_should_return_a_altered_image_with_specified_background(self):
+        test_threshold = (255,255,255)
+        crop = 0
+        offset = (0,0)
+        background = (100,100,100)
+        result = self.photo_processor.get_image(self.simple_test_file1,
+                            test_threshold, 
+                            crop,
+                            offset,
+                            background
+                            )
+        expected_image = np.ones((100,100,1)) * np.array(background)
+        expected_image[52][46] = np.array([255,255,255])
+        self.assertTrue(np.allclose(np.array(expected_image) , np.array(result)))
+
+    def test_get_image_should_crop_offset_specifed_image(self):
+        test_threshold = (255,255,255)
+        crop = 50
+        offset = (10,10)
+        result = self.photo_processor.get_image(self.simple_test_file1,
+                            test_threshold, 
+                            crop,
+                            offset
+                            )
+        expected_image = np.zeros((50,50,3))
+        expected_image[37][31] = np.array([255,255,255])
+        self.assertTrue(np.allclose(np.array(expected_image) , np.array(result)))   
 
 class Photos2PointsTests(unittest.TestCase):
 

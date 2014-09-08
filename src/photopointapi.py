@@ -26,17 +26,27 @@ class PhotoProcessor(object):
         image = ImageChops.offset(image, off_x,off_y)
         return image.crop((xdiff,ydiff,x_dim - xdiff, y_dim - ydiff))
 
-    def get_image(self, source_file, rgb_threshold, crop, offset):
-        pass
-
-    def get_points(self, source_file, rgb_threshold, z_pos, scale, simplification, crop, offset):
+    def _load_image(self,source_file,crop,offset):
         image_file = Image.open(source_file)
         image = self.crop_image(image_file,crop,offset)
-        image_array = np.array(image)
+        return np.array(image)
+
+    def _mask_of_valid_points(self, image_array, rgb_threshold):
         height,width,c = image_array.shape
         threshold_array =  np.ones((height,width,c)) * rgb_threshold
-        result = image_array >= threshold_array
-        result = np.sum(result, axis = 2)
+        return image_array >= threshold_array
+
+    def get_image(self, source_file, rgb_threshold, crop, offset, background = (0,0,0)):
+        image_array = self._load_image(source_file,crop,offset)
+        mask = self._mask_of_valid_points(image_array, rgb_threshold)
+        kept_parts = image_array * mask
+        kept_parts[(kept_parts == (0,0,0)).all(axis = -1)] = background
+        return Image.fromarray(np.uint8(kept_parts))
+
+    def get_points(self, source_file, rgb_threshold, z_pos, scale, simplification, crop, offset):
+        image_array = self._load_image(source_file,crop,offset)
+        mask = self._mask_of_valid_points(image_array, rgb_threshold)
+        result = np.sum(mask, axis = 2)
         y,x = np.where(result)
         z = np.ones(y.shape[0]) * z_pos
         d_c = image_array[(y,x)]
@@ -114,6 +124,7 @@ class PhotoPointApi(object):
         self.folder_cache = ''
         self.rgb_threshold = (255,255,255)
         self.image_types = ['jpg','jpeg']
+        self.pp = PhotoProcessor()
 
     def _files(self,folder):
         if self.folder_cache != folder:
@@ -128,47 +139,12 @@ class PhotoPointApi(object):
     def _isimage(self,afile):
         return afile.lower().split('.')[-1] in self.image_types
 
-    def _in_threshold(self,pixel, rgb_threshold):
-        return (pixel[0] >= rgb_threshold[0] and pixel[1] >= rgb_threshold[1] and pixel[2] >= rgb_threshold[2])
-
-    def _threshold_test(self, band, threshold, background):
-            if (band >= threshold):
-                return band
-            else:
-                return background
-
-    def test_image(self, folder, size, rgb_threshold, image_no = None, background = 0, crop = 0,offset = (0,0)):
+    def test_image(self, folder, size, rgb_threshold, image_no, background = 0, crop = 0,offset = (0,0)):
         images = self._files(folder)
-        if image_no == None:
-            image_to_use = len(images) / 2
-        else:
-            image_to_use = image_no - 1
+        image_to_use = image_no - 1
         test_image_file = images[image_to_use]
-        image = Image.open(test_image_file)
-
-        x_dim,y_dim = image.size
-
-        ydiff = int(float(y_dim) * float(crop) / 100.0 / 2.0)
-        xdiff = int(float(x_dim) * float(crop) / 100.0 / 2.0)
-
-        off_x = int(float(offset[0]) / 100.0 * float(x_dim))
-        off_y = int(float(offset[1]) / 100.0 * float(y_dim))
-        if abs(off_x) > xdiff:
-            off_x = xdiff * (abs(off_x) / off_x)
-        if abs(off_y) > ydiff:
-            off_y = ydiff * (abs(off_y) / off_y)
-        image = ImageChops.offset(image, off_x,off_y)
-        image = image.crop((xdiff,ydiff,x_dim - xdiff, y_dim - ydiff))
-
-
+        image = self.pp.get_image(test_image_file, rgb_threshold,crop,offset, background)
         image.thumbnail(size)
-        if rgb_threshold:
-            R,G,B = image.split()
-            mask1 = R.point(lambda i: self._threshold_test(i, rgb_threshold[0], background))
-            mask2 = G.point(lambda i: self._threshold_test(i, rgb_threshold[1], background))
-            mask3 = B.point(lambda i: self._threshold_test(i, rgb_threshold[2], background))
-
-            image = Image.merge(image.mode,(mask1,mask2,mask3) )
         return (image, test_image_file)
 
 
