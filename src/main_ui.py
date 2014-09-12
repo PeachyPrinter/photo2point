@@ -55,7 +55,7 @@ class PhotoPoint(Tk):
         self.selected_image = IntVar()
         self.selected_image.set(0)
         self.crop = IntVar()
-        self.crop.set(0)
+        self.crop.set(100)
         self.x_offset = IntVar()
         self.x_offset.set(0)
         self.y_offset = IntVar()

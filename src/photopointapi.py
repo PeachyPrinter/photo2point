@@ -13,22 +13,28 @@ class PhotoProcessor(object):
     def crop_image(self,image,crop,offset):
         x_dim,y_dim = image.size
 
-        ydiff = int(float(y_dim) * float(crop) / 100.0 / 2.0)
-        xdiff = int(float(x_dim) * float(crop) / 100.0 / 2.0)
+        x_size = int(float(x_dim) * (float(crop) / 100.0))
+        y_size = int(float(y_dim) * (float(crop) / 100.0))
 
-        off_x = int(float(offset[0]) / 100.0 * float(x_dim))
-        off_y = int(float(offset[1]) / 100.0 * float(y_dim))
-        if abs(off_x) > xdiff:
-            off_x = xdiff * (abs(off_x) / off_x)
-        if abs(off_y) > ydiff:
-            off_y = ydiff * (abs(off_y) / off_y)
-        image = ImageChops.offset(image, off_x,off_y)
-        return image.crop((xdiff,ydiff,x_dim - xdiff, y_dim - ydiff))
+        max_offset_x = x_dim-x_size - 1
+        max_offset_y = y_dim-y_size - 1
+
+        off_x_percent = (50.0 - offset[0]) / 100.0
+        off_y_percent = (50.0 - offset[1]) / 100.0
+
+        off_x =  int(off_x_percent * float(max_offset_x))
+        off_y =  int(off_y_percent * float(max_offset_y))
+        cropped_image =  image.crop((off_x,off_y, off_x + x_size, off_y + y_size))
+        return cropped_image
 
     def _load_image(self,source_file,crop,offset):
         image_file = Image.open(source_file)
-        image = self.crop_image(image_file,crop,offset)
-        return np.array(image)
+        if crop == 100:
+            array =  np.array(image_file)
+        else:
+            image = self.crop_image(image_file,crop,offset)
+            array =  np.array(image)
+        return array
 
     def _mask_of_valid_points(self, image_array, rgb_threshold):
         height,width,c = image_array.shape
@@ -138,7 +144,7 @@ class PhotoPointApi(object):
     def _isimage(self,afile):
         return afile.lower().split('.')[-1] in self.image_types
 
-    def test_image(self, folder, size, rgb_threshold, image_no, crop = 0,offset = (0,0)):
+    def test_image(self, folder, size, rgb_threshold, image_no, crop = 100,offset = (0,0)):
         images = self._files(folder)
         image_to_use = image_no - 1
         test_image_file = images[image_to_use]
