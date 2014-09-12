@@ -7,7 +7,6 @@ import threading
 import math
 import time
 import numpy as np
-import cv2
 
 class PhotoProcessor(object):
 
@@ -37,11 +36,10 @@ class PhotoProcessor(object):
         rgb_mask = image_array >= threshold_array
         return np.prod(rgb_mask, axis = 2, keepdims = True)
 
-    def get_image(self, source_file, rgb_threshold, crop, offset, background = (0,0,0)):
+    def get_image(self, source_file, rgb_threshold, crop, offset):
         image_array = self._load_image(source_file,crop,offset)
         mask = self._mask_of_valid_points(image_array, rgb_threshold)
         kept_parts = image_array * mask
-        kept_parts[(kept_parts == (0,0,0)).all(axis = -1)] = background
         return Image.fromarray(np.uint8(kept_parts))
 
     def get_points(self, source_file, rgb_threshold, z_pos, scale, simplification, crop, offset):
@@ -140,11 +138,11 @@ class PhotoPointApi(object):
     def _isimage(self,afile):
         return afile.lower().split('.')[-1] in self.image_types
 
-    def test_image(self, folder, size, rgb_threshold, image_no, background = 0, crop = 0,offset = (0,0)):
+    def test_image(self, folder, size, rgb_threshold, image_no, crop = 0,offset = (0,0)):
         images = self._files(folder)
         image_to_use = image_no - 1
         test_image_file = images[image_to_use]
-        image = self.pp.get_image(test_image_file, rgb_threshold,crop,offset, background)
+        image = self.pp.get_image(test_image_file, rgb_threshold,crop,offset)
         image.thumbnail(size)
         return (image, test_image_file)
 
