@@ -27,8 +27,10 @@ class PhotoProcessor(object):
         cropped_image =  image.crop((off_x,off_y, off_x + x_size, off_y + y_size))
         return cropped_image
 
-    def _load_image(self,source_file,crop,offset):
+    def _load_image(self,source_file,crop,offset,scale = None):
         image_file = Image.open(source_file)
+        if scale:
+            image_file.thumbnail(scale)
         if crop == 100:
             array =  np.array(image_file)
         else:
@@ -38,29 +40,50 @@ class PhotoProcessor(object):
 
     def _mask_of_valid_points(self, image_array, rgb_threshold):
         height,width,c = image_array.shape
-        threshold_array =  np.ones((height,width,c)) * rgb_threshold
-        rgb_mask = image_array >= threshold_array
-        return np.prod(rgb_mask, axis = 2, keepdims = True)
+        rgb_mask = image_array >= rgb_threshold
+        mask = np.prod(rgb_mask, axis = 2, keepdims = True)
+        return mask
 
     def get_image(self, source_file, rgb_threshold, crop, offset):
-        image_array = self._load_image(source_file,crop,offset)
+        sss = time.time()
+        image_array = self._load_image(source_file,crop,offset,(1067,600))
         mask = self._mask_of_valid_points(image_array, rgb_threshold)
         kept_parts = image_array * mask
-        return Image.fromarray(np.uint8(kept_parts))
+        kept_parts = self.expand_colour_range(kept_parts,rgb_threshold)
+        kept_parts = np.roll(kept_parts,1,axis=2)
+        image =  Image.fromarray(np.uint8(kept_parts))
+        print("Total: %s" % (time.time()-sss))
+        return image
+
+
+    def expand_colour_range(self, array, rgb_threshold):
+        m = max(rgb_threshold)
+        s = 255 - m + 1
+        c = float(255) / float(s)
+
+        def maximize(f):
+            r = int(max((f - m),0) * c)
+            return r
+
+        f = np.vectorize(maximize)
+        return f(array)
 
     def get_points(self, source_file, rgb_threshold, z_pos, scale, simplification, crop, offset):
+        sss = time.time()
         image_array = self._load_image(source_file,crop,offset)
         mask = self._mask_of_valid_points(image_array, rgb_threshold)
         result = np.prod(mask, axis = 2)
         y,x = np.where(result)
         z = np.ones(y.shape[0]) * z_pos
-        d_c = image_array[(y,x)]
+        d_c = self.expand_colour_range(image_array[(y,x)],rgb_threshold)
+        d_c = np.roll(d_c,1,axis=1)
         scaled_x = x * scale
         scaled_y = y * scale
         scaled_z = z * scale
         points = np.rot90(np.vstack((scaled_x,scaled_y,scaled_z)))
         coloured = np.hstack((points, d_c))
         simplified = coloured[::simplification]
+        print("Processing points: %s" % (time.time() -sss))
         return simplified
 
 

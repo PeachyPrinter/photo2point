@@ -124,7 +124,7 @@ class PhotoPoint(Tk):
         Label(background='black').grid(padx=2,column=0, columnspan = 5, row=80,sticky=N+E+S+W)
         Scale(to =  100, from_ = 0, command= self.update_required, orient=HORIZONTAL, variable = self.crop ).grid(padx=2,column=0, columnspan = 5, row=85, sticky=N+E+S+W)
 
-        self.after(1000 / 15 , self._show_image)
+        self.after(1000 / 2 , self._show_image)
         self.update = True
 
     def _points_save_as(self):
@@ -177,7 +177,7 @@ class PhotoPoint(Tk):
             photo = ImageTk.PhotoImage(image)
             self.photo = photo
             self.image_label = Label(image = photo).grid(padx=2,column=0, columnspan = 5, row=80,sticky=N+E+S+W)
-        self.after(1000 / 15 , self._show_image)
+        self.after(1000 / 2 , self._show_image)
 
     def process_points(self):
         self.api.process(

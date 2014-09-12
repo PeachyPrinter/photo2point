@@ -151,12 +151,9 @@ class PhotoProcessorTests(unittest.TestCase):
                             crop,
                             offset
                             )
-        # result.save('tmp.jpg')
-        # expected_image = np.zeros((50,50,3))
-        # expected_image[33][27] = np.array([255,255,255])  #46,52
         array = np.array(result)
 
-        self.assertTrue([255,255,255], array[33][27])   
+        self.assertTrue([255,255,255], array[33][27])
 
 class Photos2PointsTests(unittest.TestCase):
 
