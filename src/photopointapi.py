@@ -44,13 +44,13 @@ class PhotoProcessor(object):
         mask = np.prod(rgb_mask, axis = 2, keepdims = True)
         return mask
 
-    def get_image(self, source_file, rgb_threshold, crop, offset):
+    def get_image(self, source_file, rgb_threshold, crop, offset,expand_colour_range = False):
         sss = time.time()
         image_array = self._load_image(source_file,crop,offset,(1067,600))
         mask = self._mask_of_valid_points(image_array, rgb_threshold)
         kept_parts = image_array * mask
-        kept_parts = self.expand_colour_range(kept_parts,rgb_threshold)
-        kept_parts = np.roll(kept_parts,1,axis=2)
+        if expand_colour_range:
+            kept_parts = self.expand_colour_range(kept_parts,rgb_threshold)
         image =  Image.fromarray(np.uint8(kept_parts))
         print("Total: %s" % (time.time()-sss))
         return image
@@ -62,21 +62,23 @@ class PhotoProcessor(object):
         c = float(255) / float(s)
 
         def maximize(f):
-            r = int(max((f - m),0) * c)
+            r = int(max((f - m + 1 ),0) * c)
             return r
 
         f = np.vectorize(maximize)
-        return f(array)
+        expanded = f(array)
+        return np.roll(expanded,1,axis=2)
 
-    def get_points(self, source_file, rgb_threshold, z_pos, scale, simplification, crop, offset):
+    def get_points(self, source_file, rgb_threshold, z_pos, scale, simplification, crop, offset,expand_colour_range = False):
         sss = time.time()
         image_array = self._load_image(source_file,crop,offset)
         mask = self._mask_of_valid_points(image_array, rgb_threshold)
         result = np.prod(mask, axis = 2)
         y,x = np.where(result)
         z = np.ones(y.shape[0]) * z_pos
-        d_c = self.expand_colour_range(image_array[(y,x)],rgb_threshold)
-        d_c = np.roll(d_c,1,axis=1)
+        d_c = image_array[(y,x)]
+        if expand_colour_range:
+            d_c = self.expand_colour_range(d_c,rgb_threshold)
         scaled_x = x * scale
         scaled_y = y * scale
         scaled_z = z * scale
@@ -178,7 +180,7 @@ class PhotoPointApi(object):
 
     def process(self, source_folder, output_file, rgb_threshold, z_pixels, scale, simplification, call_back,crop,offset):
         files = self._files(source_folder)
-        converter = Photos2Points(files, output_file, rgb_threshold, z_pixels, scale, simplification, call_back,crop,offset)
+        converter = Photos2Points(files, output_file, rgb_threshold, z_pixels, scale, simplification, call_back,crop,offset, True)
         converter.start()
 
     def process_video(self, source_folder, output_file, rgb_threshold, crop = 0, offset = (0,0), callback = None):
@@ -188,7 +190,7 @@ class PhotoPointApi(object):
         images = self.count_images_in_folder(source_folder)
         for i in range(0, self.count_images_in_folder(source_folder)):
             print('Processing image: %s of %s' %(i+1,images))
-            image,filename = self.test_image(source_folder, video_size, rgb_threshold, i, 0, crop , offset)
+            image,filename = self.test_image(source_folder, video_size, rgb_threshold, i, 0, crop , offset, True)
             open_cv_image = np.array(image)[:, :, ::-1].copy() 
             out.write(open_cv_image)
         out.release()

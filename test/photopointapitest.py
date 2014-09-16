@@ -34,7 +34,7 @@ class PhotoPointApiTests(unittest.TestCase):
         self.assertEquals(expected,actual)
 
     def test_test_image_should_return_a_scaled_image_when_given_folder_with_images(self):
-        expected_size = 128,72
+        expected_size = 128,71
         ppa = PhotoPointApi()
         (actual, filename) = ppa.test_image(self.test_folder,expected_size, (0,0,0),4)
 
@@ -154,6 +154,24 @@ class PhotoProcessorTests(unittest.TestCase):
         array = np.array(result)
 
         self.assertTrue([255,255,255], array[33][27])
+
+    def test_expand_colour_range_should_expand_colour_range(self):
+        test_array = np.array([[[128,128,128],[255,255,255]],[[196,196,196],[0,0,0]]])
+        rgb_threshold = (128,128,128)
+        expected = np.array([[[1,1,1],[255,255,255]],[[137,137,137],[0,0,0]]])
+        
+        result = self.photo_processor.expand_colour_range(test_array,rgb_threshold)
+        self.assertTrue(np.allclose(expected,result))
+
+    def test_expand_colour_range_should_shift_colour_pallet(self):
+        test_array = np.array([[[128,255,255],[255,128,255],[255,255,128]]])
+        rgb_threshold = (128,128,128)
+        expected = np.array([[[255,1,255],[255,255,1],[1,255,255],]])
+        
+        result = self.photo_processor.expand_colour_range(test_array,rgb_threshold)
+        print result
+        self.assertTrue(np.allclose(expected,result))
+
 
 class Photos2PointsTests(unittest.TestCase):
 
