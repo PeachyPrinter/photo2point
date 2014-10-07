@@ -7,6 +7,7 @@ import threading
 import math
 import time
 import numpy as np
+import cv2
 
 class PhotoProcessor(object):
 
@@ -44,7 +45,7 @@ class PhotoProcessor(object):
         mask = np.prod(rgb_mask, axis = 2, keepdims = True)
         return mask
 
-    def get_image(self, source_file, rgb_threshold, crop, offset,expand_colour_range = False):
+    def get_image(self, source_file, rgb_threshold, crop, offset,expand_colour_range = True):
         sss = time.time()
         image_array = self._load_image(source_file,crop,offset,(1067,600))
         mask = self._mask_of_valid_points(image_array, rgb_threshold)
@@ -66,10 +67,15 @@ class PhotoProcessor(object):
             return r
 
         f = np.vectorize(maximize)
-        expanded = f(array)
-        return np.roll(expanded,1,axis=2)
+        try:
+            expanded = f(array)
+        except:
+            print("Error processing data that should really be fixed")
+            expanded = array
+        last_axis = len(array.shape) - 1
+        return np.roll(expanded,1,axis=last_axis)
 
-    def get_points(self, source_file, rgb_threshold, z_pos, scale, simplification, crop, offset,expand_colour_range = False):
+    def get_points(self, source_file, rgb_threshold, z_pos, scale, simplification, crop, offset,expand_colour_range = True):
         sss = time.time()
         image_array = self._load_image(source_file,crop,offset)
         mask = self._mask_of_valid_points(image_array, rgb_threshold)
@@ -88,7 +94,6 @@ class PhotoProcessor(object):
         print("Processing points: %s" % (time.time() -sss))
         return simplified
 
-
 class Photos2Points(threading.Thread):
     def __init__(self, source_files, output_file, rgb_threshold, z_pixels, scale, simplification, call_back, crop, offset):
         super(Photos2Points, self).__init__()
@@ -104,18 +109,7 @@ class Photos2Points(threading.Thread):
         self.offset = offset
         self.photo_processor = PhotoProcessor()
 
-        self._ply_template = '''ply
-format ascii 1.0
-comment object: %s
-element vertex %s
-property float x
-property float y
-property float z
-property uchar red
-property uchar green
-property uchar blue
-end_header
-'''
+        self._ply_template = '''ply\nformat ascii 1.0\ncomment object: %s\nelement vertex %s\nproperty float x\nproperty float y\nproperty float z\nproperty uchar red\nproperty uchar green\nproperty uchar blue\nend_header\n'''
 
     def _in_threshold(self,pixel):
         return (pixel[0] >= self.rgb_threshold[0] and pixel[1] >= self.rgb_threshold[1] and pixel[2] >= self.rgb_threshold[2])
@@ -180,7 +174,7 @@ class PhotoPointApi(object):
 
     def process(self, source_folder, output_file, rgb_threshold, z_pixels, scale, simplification, call_back,crop,offset):
         files = self._files(source_folder)
-        converter = Photos2Points(files, output_file, rgb_threshold, z_pixels, scale, simplification, call_back,crop,offset, True)
+        converter = Photos2Points(files, output_file, rgb_threshold, z_pixels, scale, simplification, call_back,crop,offset)
         converter.start()
 
     def process_video(self, source_folder, output_file, rgb_threshold, crop = 0, offset = (0,0), callback = None):
@@ -190,7 +184,7 @@ class PhotoPointApi(object):
         images = self.count_images_in_folder(source_folder)
         for i in range(0, self.count_images_in_folder(source_folder)):
             print('Processing image: %s of %s' %(i+1,images))
-            image,filename = self.test_image(source_folder, video_size, rgb_threshold, i, 0, crop , offset, True)
+            image,filename = self.test_image(source_folder, video_size, rgb_threshold, i, 0, crop , offset)
             open_cv_image = np.array(image)[:, :, ::-1].copy() 
             out.write(open_cv_image)
         out.release()

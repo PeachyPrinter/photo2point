@@ -41,7 +41,6 @@ class PhotoPointApiTests(unittest.TestCase):
         self.assertEquals(expected_size[0],actual.size[0])
         self.assertEquals(expected_size[1],actual.size[1])
 
-
 class PhotoProcessorTests(unittest.TestCase):
     def setUp(self):
         self.test_folder = os.path.join(os.path.dirname(__file__), 'test_data')
@@ -72,6 +71,25 @@ class PhotoProcessorTests(unittest.TestCase):
                             simplification, 
                             crop,
                             offset
+                            )
+        expected_points =np.array([[46.0, 52.0, 0.0, 255, 255, 255,]])
+        self.assertTrue(np.allclose(expected_points , result))
+
+    def test_get_points_should_expand_colour_for_points_above_threshold(self):
+        test_threshold = (64,64,128)
+        test_z_pos = 0
+        scale = 1
+        simplification = 1
+        crop = 100
+        offset = (0,0)
+        result = self.photo_processor.get_points(self.simple_test_file1,
+                            test_threshold, 
+                            test_z_pos, 
+                            scale, 
+                            simplification, 
+                            crop,
+                            offset,
+                            True
                             )
         expected_points =np.array([[46.0, 52.0, 0.0, 255, 255, 255,]])
         self.assertTrue(np.allclose(expected_points , result))
@@ -128,6 +146,7 @@ class PhotoProcessorTests(unittest.TestCase):
         expected_image[52][46] = np.array([255,255,255])
         self.assertTrue(np.allclose(np.array(expected_image) , np.array(result)))
 
+
     def test_get_image_should_blacken_points_below_threshold_special(self):
         test_threshold = (255,64,0)
         crop = 100
@@ -171,7 +190,6 @@ class PhotoProcessorTests(unittest.TestCase):
         result = self.photo_processor.expand_colour_range(test_array,rgb_threshold)
         print result
         self.assertTrue(np.allclose(expected,result))
-
 
 class Photos2PointsTests(unittest.TestCase):
 
@@ -221,18 +239,7 @@ class Photos2PointsTests(unittest.TestCase):
                             (0,0))
         ppa.start()
         ppa.join()
-        expected_headers ='''ply
-format ascii 1.0
-comment object: %s
-element vertex %s
-property float x
-property float y
-property float z
-property uchar red
-property uchar green
-property uchar blue
-end_header
-''' % (self.simple_test_folder, 3)
+        expected_headers ='''ply\nformat ascii 1.0\ncomment object: %s\nelement vertex %s\nproperty float x\nproperty float y\nproperty float z\nproperty uchar red\nproperty uchar green\nproperty uchar blue\nend_header\n''' % (self.simple_test_folder, 3)
         with open(self.output_file, 'r') as actual:
             data = actual.read()
             self.assertTrue(data.startswith(expected_headers),data )
